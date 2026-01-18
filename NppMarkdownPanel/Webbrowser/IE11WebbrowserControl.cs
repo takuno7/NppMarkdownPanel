@@ -196,10 +196,14 @@ namespace NppMarkdownPanel.Webbrowser
             return webViewInitialized && webBrowserPreview != null;
         }
 
-        public void SaveScrollYPosForFilename(string filename)
+        public void CurrentDocumentRenamed(string newDocumentPath)
         {
 
         }
 
+        public void StopScrollPositionTracking()
+        {
+
+        }
     }
 }

@@ -79,6 +79,7 @@ namespace Webview2Viewer
                                 webView.Dock = DockStyle.Fill;
                                 webView.TabIndex = 0;
                                 webView.NavigationStarting += OnWebBrowser_NavigationStarting;
+                                webView.CoreWebView2.WebMessageReceived += WebView_WebMessageReceived;
                                 webView.NavigationCompleted += WebView_NavigationCompleted;
                                 webView.ZoomFactor = ConvertToZoomFactor(zoomLevel);
                             }, scheduler);
@@ -108,7 +109,7 @@ namespace Webview2Viewer
         {
             if (!IsInitialized()) return;
 
-            if (!String.IsNullOrEmpty(currentDocumentPath) && scrollYForFilename.ContainsKey(currentDocumentPath))
+            if (!String.IsNullOrEmpty(currentDocumentPath) && scrollYForFilename.ContainsKey(currentDocumentPath) && scrollYForFilename[currentDocumentPath] > 0)
             {
                 ExecuteWebviewAction(new Action(async () =>
                 {
@@ -116,6 +117,24 @@ namespace Webview2Viewer
                     if (RenderingDoneAction != null) RenderingDoneAction();
                 }));
             }
+
+            if (e.IsSuccess)
+            {
+                ExecuteWebviewAction(new Action(async () =>
+                {
+                    // inject JS to listen to the "Scrollend" event
+                    string jsScript = @"
+
+                                window.addEventListener('scrollend', function() {
+                                    window.chrome.webview.postMessage('scrollEndUpdate;' + window.scrollY);
+                                });
+                            ";
+                    await webView.ExecuteScriptAsync(jsScript);
+                }));
+
+                blockScrollUpdates = false;
+            }
+
         }
 
         public Bitmap MakeScreenshot()
@@ -127,18 +146,6 @@ namespace Webview2Viewer
         public void PrepareContentUpdate(bool preserveVerticalScrollPosition)
         {
             if (!IsInitialized()) return;
-            /*  if (preserveVerticalScrollPosition)
-              {
-                  ExecuteWebviewAction(new Action(async () =>
-                  {
-                      var scrollPosition = await webView.ExecuteScriptAsync("window.pageYOffset");
-                      lastVerticalScroll = int.Parse(scrollPosition.Split('.')[0]);
-                  }));
-              }
-              else
-              {
-                  lastVerticalScroll = 0;
-              }*/
         }
 
         const string scrollScript =
@@ -280,34 +287,54 @@ namespace Webview2Viewer
         }
 
         Dictionary<string, int> scrollYForFilename = new Dictionary<string, int>();
+        bool blockScrollUpdates = true;
 
-        public void SaveScrollYPosForFilename(string filename)
+        private void WebView_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
-            if (!IsInitialized()) return;
-            ExecuteWebviewAction(new Action(async () =>
+            string message = e.TryGetWebMessageAsString();
+
+            // Parse die JSON-Nachricht
+            var splittedParams = message.Split(';');
+            if (splittedParams.Length > 1)
             {
-                var scrollPosition = await webView.ExecuteScriptAsync("window.pageYOffset");
-                if (!String.IsNullOrEmpty(scrollPosition) && scrollPosition != "null")
+                string action = splittedParams[0];
+                if (action == "scrollEndUpdate" && !blockScrollUpdates)
                 {
                     try
                     {
-                        var scrolly = int.Parse(scrollPosition.Split('.')[0]);
-                        if (scrollYForFilename.ContainsKey(filename))
+                        var scrolly = int.Parse(splittedParams[1].Split('.')[0]);
+                        if (scrollYForFilename.ContainsKey(currentDocumentPath))
                         {
-                            scrollYForFilename[filename] = scrolly;
+                            scrollYForFilename[currentDocumentPath] = scrolly;
                         }
                         else
                         {
-                            scrollYForFilename.Add(filename, scrolly);
+                            scrollYForFilename.Add(currentDocumentPath, scrolly);
                         }
                     }
                     catch (Exception ex)
                     {
                     }
-
                 }
-            }));
+            }
         }
+
+        public void CurrentDocumentRenamed(string newDocumentPath)
+        {
+            if (scrollYForFilename.ContainsKey(currentDocumentPath))
+            {
+                scrollYForFilename.Add(newDocumentPath, scrollYForFilename[currentDocumentPath]);
+                scrollYForFilename.Remove(currentDocumentPath);
+            }
+
+            currentDocumentPath = newDocumentPath;
+        }
+
+        public void StopScrollPositionTracking()
+        {
+            blockScrollUpdates = true;
+        }
+
 
     }
 }

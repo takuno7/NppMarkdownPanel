@@ -316,8 +316,22 @@ namespace NppMarkdownPanel.Forms
 
         public void SetMarkdownFilePath(string filepath, bool isRename = false)
         {
-            webbrowserControl.SaveScrollYPosForFilename(isRename ? filepath : currentFilePath);
+
+            if (isRename)
+            {
+                webbrowserControl.CurrentDocumentRenamed(filepath);
+            }
+            else
+            {
+                if (currentFilePath!= filepath)
+                {
+                    // We're about to switch to a new file. Stop tracking the current scolly value, as we can get unexpected results now...
+                    webbrowserControl.StopScrollPositionTracking();
+                }
+            }
+
             currentFilePath = filepath;
+
         }
 
         public void Cleanup()
