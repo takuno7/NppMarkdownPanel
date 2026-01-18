@@ -1,6 +1,8 @@
 ﻿using Microsoft.Web.WebView2.Core;
 using PanelCommon;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -16,7 +18,6 @@ namespace Webview2Viewer
         const string virtualHostName = "markdownpanel-virtualhost";
         const string CONFIG_FOLDER_NAME = "MarkdownPanel";
         private Microsoft.Web.WebView2.WinForms.WebView2 webView;
-        private int lastVerticalScroll = 0;
         private bool webViewInitialized = false;
 
         public Action<string> StatusTextChangedAction { get; set; }
@@ -106,11 +107,15 @@ namespace Webview2Viewer
         private void WebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             if (!IsInitialized()) return;
-            ExecuteWebviewAction(new Action(async () =>
+
+            if (!String.IsNullOrEmpty(currentDocumentPath) && scrollYForFilename.ContainsKey(currentDocumentPath))
             {
-                await webView.ExecuteScriptAsync("window.scrollBy(0, " + lastVerticalScroll + " )");
-                if (RenderingDoneAction != null) RenderingDoneAction();
-            }));
+                ExecuteWebviewAction(new Action(async () =>
+                {
+                    await webView.ExecuteScriptAsync("window.scrollBy(0, " + scrollYForFilename[currentDocumentPath] + " )");
+                    if (RenderingDoneAction != null) RenderingDoneAction();
+                }));
+            }
         }
 
         public Bitmap MakeScreenshot()
@@ -122,18 +127,18 @@ namespace Webview2Viewer
         public void PrepareContentUpdate(bool preserveVerticalScrollPosition)
         {
             if (!IsInitialized()) return;
-            if (preserveVerticalScrollPosition)
-            {
-                ExecuteWebviewAction(new Action(async () =>
-                {
-                    var scrollPosition = await webView.ExecuteScriptAsync("window.pageYOffset");
-                    lastVerticalScroll = int.Parse(scrollPosition.Split('.')[0]);
-                }));
-            }
-            else
-            {
-                lastVerticalScroll = 0;
-            }
+            /*  if (preserveVerticalScrollPosition)
+              {
+                  ExecuteWebviewAction(new Action(async () =>
+                  {
+                      var scrollPosition = await webView.ExecuteScriptAsync("window.pageYOffset");
+                      lastVerticalScroll = int.Parse(scrollPosition.Split('.')[0]);
+                  }));
+              }
+              else
+              {
+                  lastVerticalScroll = 0;
+              }*/
         }
 
         const string scrollScript =
@@ -272,6 +277,36 @@ namespace Webview2Viewer
         public bool IsInitialized()
         {
             return webViewInitialized && webView != null;
+        }
+
+        Dictionary<string, int> scrollYForFilename = new Dictionary<string, int>();
+
+        public void SaveScrollYPosForFilename(string filename)
+        {
+            if (!IsInitialized()) return;
+            ExecuteWebviewAction(new Action(async () =>
+            {
+                var scrollPosition = await webView.ExecuteScriptAsync("window.pageYOffset");
+                if (!String.IsNullOrEmpty(scrollPosition) && scrollPosition != "null")
+                {
+                    try
+                    {
+                        var scrolly = int.Parse(scrollPosition.Split('.')[0]);
+                        if (scrollYForFilename.ContainsKey(filename))
+                        {
+                            scrollYForFilename[filename] = scrolly;
+                        }
+                        else
+                        {
+                            scrollYForFilename.Add(filename, scrolly);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+
+                }
+            }));
         }
 
     }

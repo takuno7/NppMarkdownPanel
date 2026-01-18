@@ -216,7 +216,7 @@ namespace NppMarkdownPanel
                 {
                     updateFilename = false;
                     var currentFilePath = notepadPPGateway.GetFilePathFromBufferId(bufferIdForFilenameUpdate);
-                    viewerInterface.SetMarkdownFilePath(currentFilePath);
+                    viewerInterface.SetMarkdownFilePath(currentFilePath, true);
                     AutoShowOrHidePanel(currentFilePath);
                 }
 

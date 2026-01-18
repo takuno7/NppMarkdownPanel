@@ -26,5 +26,6 @@ namespace PanelCommon
         void Dispose();
 
         bool IsInitialized();
+        void SaveScrollYPosForFilename(string filename);
     }
 }

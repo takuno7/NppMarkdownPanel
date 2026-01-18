@@ -196,5 +196,10 @@ namespace NppMarkdownPanel.Webbrowser
             return webViewInitialized && webBrowserPreview != null;
         }
 
+        public void SaveScrollYPosForFilename(string filename)
+        {
+
+        }
+
     }
 }

@@ -314,8 +314,9 @@ namespace NppMarkdownPanel.Forms
             return matchExtensionList;
         }
 
-        public void SetMarkdownFilePath(string filepath)
+        public void SetMarkdownFilePath(string filepath, bool isRename = false)
         {
+            webbrowserControl.SaveScrollYPosForFilename(isRename ? filepath : currentFilePath);
             currentFilePath = filepath;
         }
 

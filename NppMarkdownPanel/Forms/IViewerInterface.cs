@@ -6,7 +6,7 @@ namespace NppMarkdownPanel.Forms
     public interface IViewerInterface
     {
         IntPtr Handle { get; }
-        void SetMarkdownFilePath(string filepath);
+        void SetMarkdownFilePath(string filepath, bool isRename = false);
         void UpdateSettings(Settings settings);
         void RenderMarkdown(string currentText, string filepath, bool preserveVerticalScrollPosition = true);
         void ScrollToElementWithLineNo(int lineNo);
