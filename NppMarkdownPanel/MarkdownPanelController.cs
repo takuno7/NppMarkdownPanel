@@ -16,7 +16,7 @@ using System.Windows.Forms;
 
 namespace NppMarkdownPanel
 {
-    public class MarkdownPanelController
+    public class MarkdownPanelController : IDisposable
     {
         private IViewerInterface viewerInterface;
         private Timer renderTimer;
@@ -44,6 +44,10 @@ namespace NppMarkdownPanel
 
         private bool nppReady;
         private Settings settings;
+        private MarkdownPreviewForm previewForm;
+        private bool _disposedValue;
+        IntPtr _ptrNppTbData;
+        private Icon _icon;
 
         public MarkdownPanelController()
         {
@@ -54,6 +58,7 @@ namespace NppMarkdownPanel
             SetIniFilePath();
             settings = LoadSettingsFromIni();
             viewerInterface = MarkdownPreviewForm.InitViewer(settings, HandleWndProc);
+            previewForm = (MarkdownPreviewForm)viewerInterface;
             renderTimer = new Timer();
             renderTimer.Interval = renderRefreshRateMilliSeconds;
             renderTimer.Tick += OnRenderTimerElapsed;
@@ -87,6 +92,7 @@ namespace NppMarkdownPanel
             settings.ShowToolbar = PluginUtils.ReadIniBool("Options", "ShowToolbar", iniFilePath);
             settings.ShowStatusbar = PluginUtils.ReadIniBool("Options", "ShowStatusbar", iniFilePath);
             settings.SupportedFileExt = Win32.ReadIniValue("Options", "SupportedFileExt", iniFilePath, Settings.DEFAULT_SUPPORTED_FILE_EXT);
+            settings.SupportFilesWithNoExt = PluginUtils.ReadIniBool("Options", "SupportFilesWithNoExt", iniFilePath);
             settings.AllowAllExtensions = PluginUtils.ReadIniBool("Options", "AllowAllExtensions", iniFilePath);
             settings.IsDarkModeEnabled = IsDarkModeEnabled();
             settings.AutoShowPanel = PluginUtils.ReadIniBool("Options", "AutoShowPanel", iniFilePath);
@@ -119,6 +125,7 @@ namespace NppMarkdownPanel
             }
             if (notification.Header.Code == (uint)NppMsg.NPPN_BUFFERACTIVATED)
             {
+                activeBufferId = notification.Header.IdFrom;
                 // Focus was switched to a new document
                 var currentFilePath = notepadPPGateway.GetCurrentFilePath();
                 viewerInterface.SetMarkdownFilePath(currentFilePath);
@@ -146,6 +153,45 @@ namespace NppMarkdownPanel
                 var currentFilePath = notepadPPGateway.GetCurrentFilePath();
                 AutoShowOrHidePanel(currentFilePath);
             }
+
+            if (notification.Header.Code == (uint)NppMsg.NPPN_FILEBEFORESAVE)
+            {
+                if (notification.Header.IdFrom == activeBufferId)
+                {
+                    beforeSafeFilename = notepadPPGateway.GetFilePathFromBufferId(notification.Header.IdFrom);
+                }
+            }
+
+            if (notification.Header.Code == (uint)NppMsg.NPPN_FILESAVED)
+            {
+                if (notification.Header.IdFrom == activeBufferId)
+                {
+                    var savedFilename = notepadPPGateway.GetFilePathFromBufferId(notification.Header.IdFrom);
+                    if (!string.Equals(beforeSafeFilename, savedFilename))
+                    {
+                        HandleFilenameUpdate(notification.Header.IdFrom);
+                    }
+                    beforeSafeFilename = "";
+                }
+            }
+
+            if (notification.Header.Code == (uint)NppMsg.NPPN_FILERENAMED)
+            {
+                HandleFilenameUpdate(notification.Header.IdFrom);
+            }
+        }
+
+        string beforeSafeFilename = "";
+        bool updateFilename = false;
+        IntPtr bufferIdForFilenameUpdate;
+        IntPtr activeBufferId;
+
+        private void HandleFilenameUpdate(IntPtr bufferId)
+        {
+            bufferIdForFilenameUpdate = bufferId;
+            updateFilename = true;
+            lastTickCount = Environment.TickCount;
+            RenderMarkdownDeferred();
         }
 
         private void RenderMarkdownDeferred()
@@ -166,6 +212,14 @@ namespace NppMarkdownPanel
             renderTimer.Stop();
             try
             {
+                if (updateFilename)
+                {
+                    updateFilename = false;
+                    var currentFilePath = notepadPPGateway.GetFilePathFromBufferId(bufferIdForFilenameUpdate);
+                    viewerInterface.SetMarkdownFilePath(currentFilePath, true);
+                    AutoShowOrHidePanel(currentFilePath);
+                }
+
                 RenderMarkdownDirect();
             }
             catch
@@ -175,7 +229,10 @@ namespace NppMarkdownPanel
 
         private void RenderMarkdownDirect(bool preserveVerticalScrollPosition = true)
         {
-            viewerInterface.RenderMarkdown(GetCurrentEditorText(), notepadPPGateway.GetCurrentFilePath(), preserveVerticalScrollPosition);
+            if (!_disposedValue)
+            {
+                viewerInterface.RenderMarkdown(GetCurrentEditorText(), notepadPPGateway.GetCurrentFilePath(), preserveVerticalScrollPosition);
+            }
         }
 
         private string GetCurrentEditorText()
@@ -215,6 +272,7 @@ namespace NppMarkdownPanel
                 settings.HtmlFileName = settingsForm.HtmlFileName;
                 settings.ShowToolbar = settingsForm.ShowToolbar;
                 settings.SupportedFileExt = settingsForm.SupportedFileExt;
+                settings.SupportFilesWithNoExt = settingsForm.SupportFilesWithNoExt;
                 settings.AllowAllExtensions = settingsForm.AllowAllExtensions;
                 settings.ShowStatusbar = settingsForm.ShowStatusbar;
                 settings.AutoShowPanel = settingsForm.AutoShowPanel;
@@ -296,6 +354,7 @@ namespace NppMarkdownPanel
             Win32.WriteIniValue("Options", "ShowToolbar", settings.ShowToolbar.ToString(), iniFilePath);
             Win32.WriteIniValue("Options", "ShowStatusbar", settings.ShowStatusbar.ToString(), iniFilePath);
             Win32.WriteIniValue("Options", "SupportedFileExt", settings.SupportedFileExt, iniFilePath);
+            Win32.WriteIniValue("Options", "SupportFilesWithNoExt", settings.SupportFilesWithNoExt.ToString(), iniFilePath);
             Win32.WriteIniValue("Options", "AutoShowPanel", settings.AutoShowPanel.ToString(), iniFilePath);
             Win32.WriteIniValue("Options", "AllowAllExtensions", settings.AllowAllExtensions.ToString(), iniFilePath);
             Win32.WriteIniValue("Options", "RenderingEngine", settings.RenderingEngine, iniFilePath);
@@ -317,9 +376,10 @@ namespace NppMarkdownPanel
                 _nppTbData.pszName = Main.PluginTitle;
                 _nppTbData.dlgID = idMyDlg;
                 _nppTbData.uMask = NppTbMsg.DWS_DF_CONT_RIGHT | NppTbMsg.DWS_ICONTAB | NppTbMsg.DWS_ICONBAR;
-                _nppTbData.hIconTab = (uint)ConvertBitmapToIcon(Properties.Resources.markdown_16x16_solid_bmp).Handle;
+                _icon = ConvertBitmapToIcon(Properties.Resources.markdown_16x16_solid_bmp);
+                _nppTbData.hIconTab = (uint)_icon.Handle;
                 _nppTbData.pszModuleName = $"{Main.ModuleName}.dll";
-                IntPtr _ptrNppTbData = Marshal.AllocHGlobal(Marshal.SizeOf(_nppTbData));
+                _ptrNppTbData = Marshal.AllocHGlobal(Marshal.SizeOf(_nppTbData));
                 Marshal.StructureToPtr(_nppTbData, _ptrNppTbData, false);
 
                 Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_DMMREGASDCKDLG, 0, _ptrNppTbData);
@@ -405,25 +465,6 @@ namespace NppMarkdownPanel
                 case (int)WindowsMessage.WM_NOTIFY:
                     var notify = (NMHDR)Marshal.PtrToStructure(m.LParam, typeof(NMHDR));
 
-                    var panel = (MarkdownPreviewForm)viewerInterface;
-
-                    // do not intercept Npp notifications like DMN_CLOSE, etc.
-                    if (notify.hwndFrom != PluginBase.nppData._nppHandle)
-                    {
-                        panel.Invalidate(true);
-                        if (IntPtr.Size == 8)
-                        {
-                            SetControlParent(panel, Win32.GetWindowLongPtr, Win32.SetWindowLongPtr);
-                        }
-                        else
-                        {
-                            SetControlParent(panel, Win32.GetWindowLong, Win32.SetWindowLong);
-                        }
-
-                        panel.Update();
-                        return;
-                    }
-
                     if (notify.code == (int)DockMgrMsg.DMN_CLOSE)
                     {
                         ToolWindowCloseAction();
@@ -456,6 +497,37 @@ namespace NppMarkdownPanel
                     SetControlParent(c, wndLongGetter, wndLongSetter);
                 }
             }
+        }
+
+        // Dispose
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                _disposedValue = true;
+                if (disposing)
+                {
+                    renderTimer.Enabled = false; //deactive timer
+                    _icon?.Dispose();
+                    _icon = null;
+                    if (_ptrNppTbData != IntPtr.Zero)
+                    {
+                        Marshal.DestroyStructure(_ptrNppTbData, typeof(NppTbData));
+                        Marshal.FreeHGlobal(_ptrNppTbData);
+                        _ptrNppTbData = IntPtr.Zero;
+                    }
+                    previewForm?.Cleanup();
+                }
+
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
 
     }

@@ -9,11 +9,12 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using TheArtOfDev.HtmlRenderer.WinForms.Utilities;
 using Webview2Viewer;
 
 namespace NppMarkdownPanel.Forms
 {
-    public partial class MarkdownPreviewForm : Form, IViewerInterface
+    public partial class MarkdownPreviewForm : DockingFormBase, IViewerInterface
     {
         const string DEFAULT_HTML_BASE =
          @"<!DOCTYPE html>
@@ -37,21 +38,25 @@ namespace NppMarkdownPanel.Forms
         private Task<RenderResult> renderTask;
 
         private string htmlContentForExport;
+        private string htmlContentForExportWithLightTheme;
+        private string currentMarkdownText;
         private Settings settings;
         private string currentFilePath;
         private IWebbrowserControl webbrowserControl;
         private IWebbrowserControl webview1Instance;
         private IWebbrowserControl webview2Instance;
+        private bool cleanupStarted;
 
-        public void UpdateSettings(Settings settings)
+        public void UpdateSettings(Settings newSettings)
         {
-            this.settings = settings;
+            this.settings = newSettings;
 
-            var isDarkModeEnabled = settings.IsDarkModeEnabled;
+            var isDarkModeEnabled = newSettings.IsDarkModeEnabled;
             if (isDarkModeEnabled)
             {
                 tbPreview.BackColor = Color.Black;
                 btnSaveHtml.ForeColor = Color.White;
+                btnSaveWithLightTheme.ForeColor = Color.White;
                 statusStrip2.BackColor = Color.Black;
                 toolStripStatusLabel1.ForeColor = Color.White;
             }
@@ -59,20 +64,19 @@ namespace NppMarkdownPanel.Forms
             {
                 tbPreview.BackColor = SystemColors.Control;
                 btnSaveHtml.ForeColor = SystemColors.ControlText;
+                btnSaveWithLightTheme.ForeColor = SystemColors.ControlText;
                 statusStrip2.BackColor = SystemColors.Control;
                 toolStripStatusLabel1.ForeColor = SystemColors.ControlText;
             }
 
-            tbPreview.Visible = settings.ShowToolbar;
-            statusStrip2.Visible = settings.ShowStatusbar;
+            tbPreview.Visible = newSettings.ShowToolbar;
+            statusStrip2.Visible = newSettings.ShowStatusbar;
 
-            if (webbrowserControl != null)
+            if (webbrowserControl.GetRenderingEngineName() != settings.RenderingEngine)
             {
-                if (webbrowserControl.GetRenderingEngineName() != settings.RenderingEngine)
-                {
-                    InitRenderingEngine(settings);
-                }
+                InitRenderingEngine(settings);
             }
+
         }
 
         private MarkdownService markdownService;
@@ -99,17 +103,16 @@ namespace NppMarkdownPanel.Forms
             InitRenderingEngine(settings);
         }
 
-        private void InitRenderingEngine(Settings settings)
+        private void InitRenderingEngine(Settings newSettings)
         {
             panel1.Controls.Clear();
-          
 
-            if (settings.IsRenderingEngineIE11())
+            if (newSettings.IsRenderingEngineIE11())
             {
                 if (webview1Instance == null)
                 {
                     webbrowserControl = new IE11WebbrowserControl();
-                    webbrowserControl.Initialize(settings.ZoomLevel);
+                    webbrowserControl.Initialize(newSettings.ZoomLevel);
                     webview1Instance = webbrowserControl;
                 }
                 else
@@ -117,12 +120,12 @@ namespace NppMarkdownPanel.Forms
                     webbrowserControl = webview1Instance;
                 }
             }
-            else if (settings.IsRenderingEngineEdge())
+            else if (newSettings.IsRenderingEngineEdge())
             {
                 if (webview2Instance == null)
                 {
                     webbrowserControl = new Webview2WebbrowserControl();
-                    webbrowserControl.Initialize(settings.ZoomLevel);
+                    webbrowserControl.Initialize(newSettings.ZoomLevel);
                     webview2Instance = webbrowserControl;
                 }
                 else
@@ -139,14 +142,14 @@ namespace NppMarkdownPanel.Forms
         private RenderResult RenderHtmlInternal(string currentText, string filepath)
         {
             var defaultBodyStyle = "";
-            var markdownStyleContent = GetCssContent(filepath);
+            var markdownStyleContent = GetCssContent();
 
             if (!IsValidFileExtension(currentFilePath))
             {
                 var invalidExtensionMessageBody = string.Format(MSG_NO_SUPPORTED_FILE_EXT, Path.GetFileName(filepath), settings.SupportedFileExt);
                 var invalidExtensionMessage = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), markdownStyleContent, defaultBodyStyle, invalidExtensionMessageBody);
 
-                return new RenderResult(invalidExtensionMessage, invalidExtensionMessage, invalidExtensionMessageBody, markdownStyleContent);
+                return new RenderResult(invalidExtensionMessage, invalidExtensionMessage, invalidExtensionMessageBody, markdownStyleContent, invalidExtensionMessage);
             }
 
             var resultForBrowser = markdownService.ConvertToHtml(currentText, filepath, true);
@@ -154,18 +157,20 @@ namespace NppMarkdownPanel.Forms
 
             var markdownHtmlBrowser = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), markdownStyleContent, defaultBodyStyle, resultForBrowser);
             var markdownHtmlFileExport = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), markdownStyleContent, defaultBodyStyle, resultForExport);
-            return new RenderResult(markdownHtmlBrowser, markdownHtmlFileExport, resultForBrowser, markdownStyleContent);
+            var markdownHtmlFileExportWithLightTheme = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), GetCssContent(true), defaultBodyStyle, resultForExport);
+
+            return new RenderResult(markdownHtmlBrowser, markdownHtmlFileExport, resultForBrowser, markdownStyleContent, markdownHtmlFileExportWithLightTheme);
         }
 
-        private string GetCssContent(string filepath)
+        private string GetCssContent(bool forceLightTheme = false)
         {
             // Path of plugin directory
             var cssContent = "";
 
             var assemblyPath = Path.GetDirectoryName(Assembly.GetAssembly(GetType()).Location);
 
-            var defaultCss = settings.IsDarkModeEnabled ? Settings.DefaultDarkModeCssFile : Settings.DefaultCssFile;
-            var customCssFile = settings.IsDarkModeEnabled ? settings.CssDarkModeFileName : settings.CssFileName;
+            var defaultCss = settings.IsDarkModeEnabled && !forceLightTheme ? Settings.DefaultDarkModeCssFile : Settings.DefaultCssFile;
+            var customCssFile = settings.IsDarkModeEnabled && !forceLightTheme ? settings.CssDarkModeFileName : settings.CssFileName;
             if (File.Exists(customCssFile))
             {
                 cssContent = File.ReadAllText(customCssFile);
@@ -180,32 +185,47 @@ namespace NppMarkdownPanel.Forms
 
         public void RenderMarkdown(string currentText, string filepath, bool preserveVerticalScrollPosition = true)
         {
-            if (renderTask == null || renderTask.IsCompleted)
+            Action renderAction = () =>
             {
-                MakeAndDisplayScreenShot();
-                webbrowserControl.PrepareContentUpdate(preserveVerticalScrollPosition);
-
-                var context = TaskScheduler.FromCurrentSynchronizationContext();
-                renderTask = new Task<RenderResult>(() => RenderHtmlInternal(currentText, filepath));
-                renderTask.ContinueWith((renderedText) =>
+                if (renderTask == null || renderTask.IsCompleted)
                 {
-                    webbrowserControl.SetContent(renderedText.Result.ResultForBrowser, renderedText.Result.ResultBody, renderedText.Result.ResultStyle, currentFilePath);
-                    htmlContentForExport = renderedText.Result.ResultForExport;
-                    if (!String.IsNullOrWhiteSpace(settings.HtmlFileName))
-                    {
-                        bool valid = Utils.ValidateFileSelection(settings.HtmlFileName, out string fullPath, out string error, "HTML Output");
-                        if (valid)
-                        {
-                            settings.HtmlFileName = fullPath; // the validation was run against this path, so we want to make sure the state of the preview matches that
-                            writeHtmlContentToFile(settings.HtmlFileName);
-                        }
-                    }
-                    webbrowserControl.SetZoomLevel(settings.ZoomLevel);
+                    MakeAndDisplayScreenShot();
+                    webbrowserControl.PrepareContentUpdate(preserveVerticalScrollPosition);
 
-                }, context);
-                renderTask.Start();
+                    var context = TaskScheduler.FromCurrentSynchronizationContext();
+                    renderTask = new Task<RenderResult>(() => RenderHtmlInternal(currentText, filepath));
+                    renderTask.ContinueWith((renderedText) =>
+                    {
+                        if (!cleanupStarted)
+                        {
+                            webbrowserControl.SetContent(renderedText.Result.ResultForBrowser, renderedText.Result.ResultBody, renderedText.Result.ResultStyle, currentFilePath);
+                            htmlContentForExport = renderedText.Result.ResultForExport;
+                            htmlContentForExportWithLightTheme = renderedText.Result.ResultForExportWithLightTheme;
+                            currentMarkdownText = currentText;
+                            if (!String.IsNullOrWhiteSpace(settings.HtmlFileName))
+                            {
+                                bool valid = Utils.ValidateFileSelection(settings.HtmlFileName, out string fullPath, out string error, "HTML Output");
+                                if (valid)
+                                {
+                                    settings.HtmlFileName = fullPath; // the validation was run against this path, so we want to make sure the state of the preview matches that
+                                    writeHtmlContentToFile(settings.HtmlFileName);
+                                }
+                            }
+                            webbrowserControl.SetZoomLevel(settings.ZoomLevel);
+                        }
+
+                    }, context);
+                    renderTask.Start();
+                }
+            };
+            webbrowserControl.AfterInitCompletedAction = renderAction;
+            if (webbrowserControl.IsInitialized())
+            {
+                webbrowserControl.AfterInitCompletedAction = null;
+                renderAction();
             }
         }
+
         /// <summary>
         /// Makes and displays a screenshot of the current browser content to prevent it from flickering 
         /// while loading updated content
@@ -245,6 +265,17 @@ namespace NppMarkdownPanel.Forms
 
         private void btnSaveHtml_Click(object sender, EventArgs e)
         {
+            ShowSaveAs(false);
+        }
+
+
+        private void btnSaveLightTheme_Click(object sender, EventArgs e)
+        {
+            ShowSaveAs(true);
+        }
+
+        private void ShowSaveAs(bool overrideLightTheme)
+        {
             using (SaveFileDialog saveFileDialog = new SaveFileDialog())
             {
                 saveFileDialog.Filter = "html files (*.html, *.htm)|*.html;*.htm|All files (*.*)|*.*";
@@ -253,16 +284,16 @@ namespace NppMarkdownPanel.Forms
                 saveFileDialog.FileName = Path.GetFileNameWithoutExtension(currentFilePath);
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    writeHtmlContentToFile(saveFileDialog.FileName);
+                    writeHtmlContentToFile(saveFileDialog.FileName, overrideLightTheme);
                 }
             }
         }
 
-        private void writeHtmlContentToFile(string filename)
+        private void writeHtmlContentToFile(string filename, bool overrideLightTheme = false)
         {
             if (!string.IsNullOrEmpty(filename))
             {
-                File.WriteAllText(filename, htmlContentForExport);
+                File.WriteAllText(filename, overrideLightTheme ? htmlContentForExportWithLightTheme : htmlContentForExport);
             }
         }
 
@@ -274,6 +305,7 @@ namespace NppMarkdownPanel.Forms
             try
             {
                 matchExtensionList = settings.SupportedFileExt.Split(',').Any(ext => ext != null && currentExtension.Equals("." + ext.Trim().ToLower()));
+                if (currentExtension == "" && settings.SupportFilesWithNoExt) matchExtensionList = true;
             }
             catch (Exception)
             {
@@ -282,9 +314,44 @@ namespace NppMarkdownPanel.Forms
             return matchExtensionList;
         }
 
-        public void SetMarkdownFilePath(string filepath)
+        public void SetMarkdownFilePath(string filepath, bool isRename = false)
         {
+
+            if (isRename)
+            {
+                webbrowserControl.CurrentDocumentRenamed(filepath);
+            }
+            else
+            {
+                if (currentFilePath!= filepath)
+                {
+                    // We're about to switch to a new file. Stop tracking the current scolly value, as we can get unexpected results now...
+                    webbrowserControl.StopScrollPositionTracking();
+                }
+            }
+
             currentFilePath = filepath;
+
+        }
+
+        public void Cleanup()
+        {
+            cleanupStarted = true;
+            if (renderTask != null)
+            {
+                renderTask.Wait();
+                renderTask = null;
+            }
+            if (webview2Instance != null)
+            {
+                webview2Instance.Dispose();
+                webview2Instance = null;
+            }
+        }
+
+        private void btnCopyToClipboard_Click(object sender, EventArgs e)
+        {
+            ClipboardHelper.CopyToClipboard(htmlContentForExport, htmlContentForExport);
         }
     }
 }

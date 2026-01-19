@@ -13,6 +13,7 @@ namespace PanelCommon
         void AddToHost(Control host);
         void PrepareContentUpdate(bool preserveVerticalScrollPosition);
         void SetContent(string content, string body, string style, string currentDocumentPath);
+        void CurrentDocumentRenamed(string newDocumentPath);
         void SetZoomLevel(int zoomLevel);
         void ScrollToElementWithLineNo(int lineNo);
         string GetRenderingEngineName();
@@ -21,6 +22,12 @@ namespace PanelCommon
 
         Action<string> StatusTextChangedAction { get; set; }
         Action RenderingDoneAction { get; set; }
+        Action AfterInitCompletedAction { get; set; }
 
+        void Dispose();
+
+        bool IsInitialized();
+
+        void StopScrollPositionTracking();
     }
 }
