@@ -117,6 +117,14 @@ To open the settings for this plugin: Plugins -> MarkdownPanel -> Settings
 * #### Save As... (![save-btn](help/save-btn.png "Picture of the Save button on the preview panel toolbar"))
     Clicking this button allows you to save the rendered preview as an HTML document.
 
+* #### Save As (with Light Theme)
+    Saves the rendered preview as an HTML document using the light theme (even if the darkmode is enabled).
+
+![/saveas_lighttheme](help/saveas_lighttheme.png "Save As Light Theme")	
+
+* #### Copy to clipboard
+    Copies the current preview to the clipboard (formatted in HTML). 
+
 ### Synchronize viewer with caret position
 
 Enabling this in the plugin's menu (Plugins -> MarkdownPanel) makes the preview panel stay in sync with the caret in the markdown document that is being edited.  
