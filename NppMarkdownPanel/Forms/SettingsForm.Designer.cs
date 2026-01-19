@@ -402,9 +402,9 @@
             this.cbFilesWithNoExt.AutoSize = true;
             this.cbFilesWithNoExt.Location = new System.Drawing.Point(170, 425);
             this.cbFilesWithNoExt.Name = "cbFilesWithNoExt";
-            this.cbFilesWithNoExt.Size = new System.Drawing.Size(277, 21);
+            this.cbFilesWithNoExt.Size = new System.Drawing.Size(271, 21);
             this.cbFilesWithNoExt.TabIndex = 27;
-            this.cbFilesWithNoExt.Text = "Enable preview for files without extensions";
+            this.cbFilesWithNoExt.Text = "Enable preview for files without extension";
             this.cbFilesWithNoExt.UseVisualStyleBackColor = true;
             this.cbFilesWithNoExt.CheckedChanged += new System.EventHandler(this.cbFilesWithNoExt_CheckedChanged);
             // 
