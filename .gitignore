@@ -190,6 +190,7 @@ elevate*.cmd
 deploy*.cmd
 build_release.cmd
 reinstall*.txt
+make_release_local.ps1
 ~$*
 *~
 *.dbmdl
