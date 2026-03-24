@@ -110,6 +110,7 @@ To open the settings for this plugin: Plugins -> MarkdownPanel -> Settings
 
 * #### Enable MathJax rendering
     Checking this box will enable MathJax (v3) rendering for LaTeX math expressions in the preview. By default, this is unchecked.
+
 	![settings-mathjax](help/settings-mathjax.png "Enable MathJax rendering")
 
 * #### Show Statusbar in Preview Window (Preview Links)
