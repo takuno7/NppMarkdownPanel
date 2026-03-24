@@ -1,4 +1,4 @@
-﻿using NppMarkdownPanel.Entities;
+using NppMarkdownPanel.Entities;
 using System;
 using System.Windows.Forms;
 
@@ -15,6 +15,7 @@ namespace NppMarkdownPanel.Forms
         public bool AllowAllExtensions { get; set; }
         public bool SupportFilesWithNoExt { get; set; }
         public bool AutoShowPanel { get; set; }
+        public bool EnableMathJax { get; set; }
         public bool ShowStatusbar { get; set; }
         public string RenderingEngine { get; set; }
 
@@ -28,6 +29,7 @@ namespace NppMarkdownPanel.Forms
             ShowToolbar = settings.ShowToolbar;
             SupportedFileExt = settings.SupportedFileExt;
             AutoShowPanel = settings.AutoShowPanel;
+            EnableMathJax = settings.EnableMathJax;
             ShowStatusbar = settings.ShowStatusbar;
             RenderingEngine = settings.RenderingEngine;
             AllowAllExtensions = settings.AllowAllExtensions;
@@ -43,6 +45,7 @@ namespace NppMarkdownPanel.Forms
             cbShowToolbar.Checked = ShowToolbar;
             tbFileExt.Text = SupportedFileExt;
             cbAutoShowPanel.Checked = AutoShowPanel;
+            cbEnableMathJax.Checked = EnableMathJax;
             cbShowStatusbar.Checked = ShowStatusbar;
             cbAllowAllExtensions.Checked = AllowAllExtensions;
             cbFilesWithNoExt.Checked = SupportFilesWithNoExt;
@@ -197,6 +200,11 @@ namespace NppMarkdownPanel.Forms
         private void cbAutoShowPanel_CheckedChanged(object sender, EventArgs e)
         {
             AutoShowPanel = cbAutoShowPanel.Checked;
+        }
+
+        private void cbEnableMathJax_CheckedChanged(object sender, EventArgs e)
+        {
+            EnableMathJax = cbEnableMathJax.Checked;
         }
 
         private void cbShowStatusbar_CheckedChanged(object sender, EventArgs e)

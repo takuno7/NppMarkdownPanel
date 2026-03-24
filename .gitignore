@@ -185,6 +185,11 @@ _pkginfo.txt
 
 # Others
 ClientBin/
+reinstall*.ps1
+elevate*.cmd
+deploy*.cmd
+build_release.cmd
+reinstall*.txt
 ~$*
 *~
 *.dbmdl

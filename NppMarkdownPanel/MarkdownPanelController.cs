@@ -1,4 +1,4 @@
-﻿using Kbg.NppPluginNET.PluginInfrastructure;
+using Kbg.NppPluginNET.PluginInfrastructure;
 using NppMarkdownPanel.Entities;
 using NppMarkdownPanel.Forms;
 using NppMarkdownPanel.Generator;
@@ -96,6 +96,7 @@ namespace NppMarkdownPanel
             settings.AllowAllExtensions = PluginUtils.ReadIniBool("Options", "AllowAllExtensions", iniFilePath);
             settings.IsDarkModeEnabled = IsDarkModeEnabled();
             settings.AutoShowPanel = PluginUtils.ReadIniBool("Options", "AutoShowPanel", iniFilePath);
+            settings.EnableMathJax = PluginUtils.ReadIniBool("Options", "EnableMathJax", iniFilePath, true);
             settings.RenderingEngine = Win32.ReadIniValue("Options", "RenderingEngine", iniFilePath, Settings.RENDERING_ENGINE_WEBVIEW2_EDGE);
             return settings;
         }
@@ -276,6 +277,7 @@ namespace NppMarkdownPanel
                 settings.AllowAllExtensions = settingsForm.AllowAllExtensions;
                 settings.ShowStatusbar = settingsForm.ShowStatusbar;
                 settings.AutoShowPanel = settingsForm.AutoShowPanel;
+                settings.EnableMathJax = settingsForm.EnableMathJax;
                 settings.RenderingEngine = settingsForm.RenderingEngine;
 
                 settings.IsDarkModeEnabled = IsDarkModeEnabled();
@@ -356,6 +358,7 @@ namespace NppMarkdownPanel
             Win32.WriteIniValue("Options", "SupportedFileExt", settings.SupportedFileExt, iniFilePath);
             Win32.WriteIniValue("Options", "SupportFilesWithNoExt", settings.SupportFilesWithNoExt.ToString(), iniFilePath);
             Win32.WriteIniValue("Options", "AutoShowPanel", settings.AutoShowPanel.ToString(), iniFilePath);
+            Win32.WriteIniValue("Options", "EnableMathJax", settings.EnableMathJax.ToString(), iniFilePath);
             Win32.WriteIniValue("Options", "AllowAllExtensions", settings.AllowAllExtensions.ToString(), iniFilePath);
             Win32.WriteIniValue("Options", "RenderingEngine", settings.RenderingEngine, iniFilePath);
         }

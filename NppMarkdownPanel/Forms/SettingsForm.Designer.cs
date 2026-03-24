@@ -1,4 +1,4 @@
-﻿namespace NppMarkdownPanel.Forms
+namespace NppMarkdownPanel.Forms
 {
     partial class SettingsForm
     {
@@ -58,6 +58,7 @@
             this.label6 = new System.Windows.Forms.Label();
             this.comboRenderingEngine = new System.Windows.Forms.ComboBox();
             this.cbShowToolbar = new System.Windows.Forms.CheckBox();
+            this.cbEnableMathJax = new System.Windows.Forms.CheckBox();
             this.cbShowStatusbar = new System.Windows.Forms.CheckBox();
             this.cbAllowAllExtensions = new System.Windows.Forms.CheckBox();
             this.cbFilesWithNoExt = new System.Windows.Forms.CheckBox();
@@ -375,10 +376,21 @@
             this.cbShowToolbar.UseVisualStyleBackColor = true;
             this.cbShowToolbar.CheckedChanged += new System.EventHandler(this.cbShowToolbar_Changed);
             // 
+            // cbEnableMathJax
+            // 
+            this.cbEnableMathJax.AutoSize = true;
+            this.cbEnableMathJax.Location = new System.Drawing.Point(170, 529);
+            this.cbEnableMathJax.Name = "cbEnableMathJax";
+            this.cbEnableMathJax.Size = new System.Drawing.Size(182, 21);
+            this.cbEnableMathJax.TabIndex = 28;
+            this.cbEnableMathJax.Text = "Enable MathJax rendering";
+            this.cbEnableMathJax.UseVisualStyleBackColor = true;
+            this.cbEnableMathJax.CheckedChanged += new System.EventHandler(this.cbEnableMathJax_CheckedChanged);
+            // 
             // cbShowStatusbar
             // 
             this.cbShowStatusbar.AutoSize = true;
-            this.cbShowStatusbar.Location = new System.Drawing.Point(170, 529);
+            this.cbShowStatusbar.Location = new System.Drawing.Point(170, 558);
             this.cbShowStatusbar.Name = "cbShowStatusbar";
             this.cbShowStatusbar.Size = new System.Drawing.Size(321, 21);
             this.cbShowStatusbar.TabIndex = 19;
@@ -429,6 +441,7 @@
             this.Controls.Add(this.label4);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.cbShowToolbar);
+            this.Controls.Add(this.cbEnableMathJax);
             this.Controls.Add(this.btnResetHtml);
             this.Controls.Add(this.btnChooseHtml);
             this.Controls.Add(this.tbHtmlFile);
@@ -491,6 +504,7 @@
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.ComboBox comboRenderingEngine;
         private System.Windows.Forms.CheckBox cbShowToolbar;
+        private System.Windows.Forms.CheckBox cbEnableMathJax;
         private System.Windows.Forms.CheckBox cbShowStatusbar;
         private System.Windows.Forms.CheckBox cbAllowAllExtensions;
         private System.Windows.Forms.CheckBox cbFilesWithNoExt;

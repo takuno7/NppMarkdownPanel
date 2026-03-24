@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -199,6 +199,13 @@
   <Import Project="$(MSBuildProjectDirectory)\..\packages\Unmanagedexports.Repack.Upgrade.1.2.1\build\UnmanagedExports.Repack.Upgrade.targets" />
   <PropertyGroup>
     <PostBuildEvent>
+      if not exist "$(TargetDir)lib" mkdir "$(TargetDir)lib"
+      xcopy "$(ProjectDir)..\MarkdigWrapper\bin\$(Configuration)\*.dll" "$(TargetDir)lib\" /y
+      xcopy "$(ProjectDir)..\PanelCommon\bin\$(Configuration)\*.dll" "$(TargetDir)lib\" /y
+      xcopy "$(ProjectDir)..\Webview2Viewer\bin\$(Configuration)\*.dll" "$(TargetDir)lib\" /y
+      if exist "$(ProjectDir)..\Webview2Viewer\bin\$(Configuration)\runtimes" (
+          xcopy "$(ProjectDir)..\Webview2Viewer\bin\$(Configuration)\runtimes" "$(TargetDir)lib\runtimes\" /s /e /y /i
+      )
     </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

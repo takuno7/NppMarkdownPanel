@@ -1,4 +1,4 @@
-﻿using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Core;
 using PanelCommon;
 using System;
 using System.Collections;
@@ -194,7 +194,15 @@ namespace Webview2Viewer
                     currentBody = body;
                     ExecuteWebviewAction(new Action(async () =>
                     {
-                        await webView.ExecuteScriptAsync("document.body.innerHTML = '" + HttpUtility.JavaScriptStringEncode(currentBody) + "'");
+                        var script = "document.body.innerHTML = '" + HttpUtility.JavaScriptStringEncode(currentBody) + "';\n" +
+                                     "if (window.MathJax) {\n" +
+                                     "  clearTimeout(window.mathJaxTimeout);\n" +
+                                     "  window.mathJaxTimeout = setTimeout(() => { \n" +
+                                     "    window.MathJax.typesetClear();\n" +
+                                     "    window.MathJax.typesetPromise(); \n" +
+                                     "  }, 250);\n" +
+                                     "}";
+                        await webView.ExecuteScriptAsync(script);
                     }));
                 }
                 if (currentStyle != style)

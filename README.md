@@ -8,7 +8,7 @@ Plugin to preview Markdown files in Notepad++
 
 ### Current Version
 
-The current version is **0.9.1** it can be found [here](https://github.com/mohzy83/NppMarkdownPanel/releases)
+The current version is **0.9.2** it can be found [here](https://github.com/mohzy83/NppMarkdownPanel/releases)
 
 
 ## Prerequisites
@@ -108,6 +108,10 @@ To open the settings for this plugin: Plugins -> MarkdownPanel -> Settings
 * #### Show Toolbar in Preview Window
     Checking this box will enable the toolbar in the preview window. By default, this is unchecked.
 
+* #### Enable MathJax rendering
+    Checking this box will enable MathJax (v3) rendering for LaTeX math expressions in the preview. By default, this is unchecked.
+	![settings-mathjax](help/settings-mathjax.png "Enable MathJax rendering")
+
 * #### Show Statusbar in Preview Window (Preview Links)
     Checking this box will show the status bar, which previews urls for links. By default, this is unchecked.
 
@@ -143,6 +147,11 @@ After that it's possible to use the shortcut to open or close the panel.
 ![shortcut.png](help/shortcut.png "Bind shortcut to toggle function")
 
 ## Version History
+
+### Version 0.9.2 (released 2026-03-24)
+
+- Features
+	- Enable MathJax (v3) rendering for LaTeX math expressions
 
 ### Version 0.9.1 (released 2026-01-19)
 

@@ -1,4 +1,4 @@
-﻿using NppMarkdownPanel.Entities;
+using NppMarkdownPanel.Entities;
 using NppMarkdownPanel.Generator;
 using NppMarkdownPanel.Webbrowser;
 using PanelCommon;
@@ -26,6 +26,7 @@ namespace NppMarkdownPanel.Forms
                     <style type=""text/css"">
                     {1}
                     </style>
+                    {4}
                 </head>
                 <body class=""markdown-body"" style=""{2}"">
                 {3}
@@ -147,7 +148,7 @@ namespace NppMarkdownPanel.Forms
             if (!IsValidFileExtension(currentFilePath))
             {
                 var invalidExtensionMessageBody = string.Format(MSG_NO_SUPPORTED_FILE_EXT, Path.GetFileName(filepath), settings.SupportedFileExt);
-                var invalidExtensionMessage = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), markdownStyleContent, defaultBodyStyle, invalidExtensionMessageBody);
+                var invalidExtensionMessage = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), markdownStyleContent, defaultBodyStyle, invalidExtensionMessageBody, "");
 
                 return new RenderResult(invalidExtensionMessage, invalidExtensionMessage, invalidExtensionMessageBody, markdownStyleContent, invalidExtensionMessage);
             }
@@ -155,9 +156,11 @@ namespace NppMarkdownPanel.Forms
             var resultForBrowser = markdownService.ConvertToHtml(currentText, filepath, true);
             var resultForExport = markdownService.ConvertToHtml(currentText, null, false);
 
-            var markdownHtmlBrowser = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), markdownStyleContent, defaultBodyStyle, resultForBrowser);
-            var markdownHtmlFileExport = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), markdownStyleContent, defaultBodyStyle, resultForExport);
-            var markdownHtmlFileExportWithLightTheme = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), GetCssContent(true), defaultBodyStyle, resultForExport);
+            var mathJaxScript = settings.EnableMathJax ? "<script>window.MathJax = { tex: { inlineMath: [['$','$'], ['\\\\(','\\\\)']], displayMath: [['$$','$$'], ['\\\\[','\\\\]']] }, svg: { fontCache: 'global' } };</script><script src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>" : "";
+
+            var markdownHtmlBrowser = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), markdownStyleContent, defaultBodyStyle, resultForBrowser, mathJaxScript);
+            var markdownHtmlFileExport = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), markdownStyleContent, defaultBodyStyle, resultForExport, mathJaxScript);
+            var markdownHtmlFileExportWithLightTheme = string.Format(DEFAULT_HTML_BASE, Path.GetFileName(filepath), GetCssContent(true), defaultBodyStyle, resultForExport, mathJaxScript);
 
             return new RenderResult(markdownHtmlBrowser, markdownHtmlFileExport, resultForBrowser, markdownStyleContent, markdownHtmlFileExportWithLightTheme);
         }

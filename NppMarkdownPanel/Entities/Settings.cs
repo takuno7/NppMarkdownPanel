@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,6 +28,7 @@ namespace NppMarkdownPanel.Entities
         public bool ShowToolbar { get; set; }
         public bool ShowStatusbar { get; set; }
         public bool AutoShowPanel { get; set; }
+        public bool EnableMathJax { get; set; } = true;
 
         public string PreProcessorCommandFilename { get; set; }
         public string PreProcessorArguments { get; set; }
