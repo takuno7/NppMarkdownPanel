@@ -154,6 +154,9 @@ After that it's possible to use the shortcut to open or close the panel.
 - Features
 	- Enable MathJax (v3) rendering for LaTeX math expressions
 
+- Bug fixes
+	- Fixed: Relative path images not displayed in WebView2 preview
+
 ### Version 0.9.1 (released 2026-01-19)
 
 - Features

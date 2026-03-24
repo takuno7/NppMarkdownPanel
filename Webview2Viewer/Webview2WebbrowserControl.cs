@@ -224,6 +224,15 @@ namespace Webview2Viewer
             {
                 currentBody = body;
                 currentStyle = style;
+
+                // Inject a <base href> so relative paths (images, links) resolve from the document's folder
+                if (!string.IsNullOrEmpty(currentDocumentPath))
+                {
+                    var currentPath = Path.GetDirectoryName(currentDocumentPath).Replace('\\', '/');
+                    var baseTag = "<base href=\"" + virtualHostProtocol + virtualHostName + "/\">";
+                    content = content.Replace("<head>", "<head>" + baseTag);
+                }
+
                 ExecuteWebviewAction(new Action(() =>
                 {
                     webView.NavigateToString(content);
